@@ -12,6 +12,51 @@ const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 let map, mapEvent; // create a global variable because we want to access map in that form submit fn
 
+class workout {
+  date = new Date(); //defiend as fields
+  id = (Date.now() + '').slice(-10); // for dummy unique id
+
+  constructor(coords, distance, duration) {
+    // this will take in the data that is common in both the running and cycling classes
+    this.coords = coords;
+    this.distance = distance;
+    this.duration = duration;
+  }
+}
+
+//child classes of workout object
+class Running extends workout {
+  constructor(coords, distance, duration, cadence) {
+    super(coords, distance, duration);
+    this.cadence = cadence;
+    this.Calcpace();
+  }
+
+  Calcpace() {
+    //min/km
+    this.pace = this.duration / this.distance;
+    return this.pace;
+  }
+}
+
+class Cycling extends workout {
+  constructor(coords, distance, duration, elevationGain) {
+    super(coords, distance, duration);
+    this.elevationGain = elevationGain;
+    this.calcSpeed();
+  }
+  calcSpeed() {
+    this.speed = this.distance / (this.duration / 60);
+    return this.speed;
+  }
+}
+
+// const run1 = new Running([39, -12], 5.2, 24, 178);
+// const cycle1 = new Cycling([39, -12], 27, 95, 523);
+// console.log(run1, cycle1); // here we will get all the data that we specified also the pace will be calculated in running and and speed will be calculated in cycling also if you look at the __proto__ of running that you will see the method calcpace and in __proto__ of cycling you will see calcspeed method amd even further of its _proto_ will have 'Workout'
+
+//////////////////////////////////////////////////////////
+///////////application architecture///////////
 class App {
   #map; //private properties that are presented on all the intances created through this class
   #mapEvent;
@@ -21,12 +66,7 @@ class App {
     this._getPosition(); ///constructer method is called immediately when a new object is created from this class so we want the map when the page load so we will call that fn is the constructer.
     form.addEventListener('submit', this._newWorkout.bind(this)); // this._newWorkout is attached to an addEventListener fn it is called by addevent listener so here the this keyword will always point to the dom element that it is attached to and in this case its form element so we have to use bind method
 
-    inputType.addEventListener('change', function () {
-      inputElevation
-        .closest('.form__row')
-        .classList.toggle('form__row--hidden');
-      inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
-    });
+    inputType.addEventListener('change', this._toggleElevationField); //here in the fn _toggleElevationField it doesn't matter what the this keyword will look like
   }
 
   _getPosition() {
@@ -82,7 +122,11 @@ class App {
     inputDistance.focus();
   }
 
-  _toggleElevationField() {}
+  _toggleElevationField() {
+    // this fn does not use the this keyword anywhere therefore we dont need to bind where _toggleElevationField is called
+    inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+    inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+  }
 
   _newWorkout(e) {
     e.preventDefault();
