@@ -14,6 +14,15 @@ class workout {
     this.distance = distance;
     this.duration = duration;
   }
+  _setDescription(){
+    // prettier-ignore
+    const months = [ 'January','February','March', 'April','May', 'June', 'July', 'August','September', 'October',
+      'November',
+      'December',
+    ];
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`
+
+  }
 }
 
 //child classes of workout object
@@ -23,6 +32,7 @@ class Running extends workout {
     super(coords, distance, duration);
     this.cadence = cadence;
     this.Calcpace();
+    this._setDescription();
   }
 
   Calcpace() {
@@ -38,6 +48,7 @@ class Cycling extends workout {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
     this.calcSpeed();
+    this._setDescription();
   }
   calcSpeed() {
     this.speed = this.distance / (this.duration / 60);
@@ -51,20 +62,6 @@ class Cycling extends workout {
 
 //////////////////////////////////////////////////////////
 ///////////application architecture///////////
-const months = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 const form = document.querySelector('.form');
 const containerWorkouts = document.querySelector('.workouts');
@@ -85,6 +82,7 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this)); // this._newWorkout is attached to an addEventListener fn it is called by addevent listener so here the this keyword will always point to the dom element that it is attached to and in this case its form element so we have to use bind method
 
     inputType.addEventListener('change', this._toggleElevationField); //here in the fn _toggleElevationField it doesn't matter what the this keyword will look like
+    containerWorkouts.addEventListener('click', this._moveToPopup);
   }
 
   _getPosition() {
@@ -140,6 +138,15 @@ class App {
     inputDistance.focus();
   }
 
+  _hideform() {
+    inputElevation.value =
+      inputDuration.value =
+      inputDistance.value =
+      inputCadence.value =
+        '';
+    form.classList.add('hidden');
+  }
+
   _toggleElevationField() {
     // this fn does not use the this keyword anywhere therefore we dont need to bind where _toggleElevationField is called
     inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
@@ -191,18 +198,17 @@ class App {
     /// add new object to workout array
     this.#Workouts.push(workout);
     console.log(workout);
+
     //render workout on map as a marker
-    this.renderWorkoutMarker(workout);
+    this._renderWorkoutMarker(workout);
     //render workout on list
+    this._renderworkout(workout);
     //clear input fields + Hide form
 
-    inputDistance.value =
-      inputCadence.value =
-      inputDuration.value =
-      inputElevation.value =
-        '';
+    this._hideform();
   }
-  renderWorkoutMarker(workout) {
+
+  _renderWorkoutMarker(workout) {
     console.log(workout);
     L.marker([workout.coords[0], workout.coords[1]])
       .addTo(this.#map) //we will use that global variable here because without that in this the map is in another function we cannot access it because we are trying to access a variable which is not in the current scope
@@ -215,12 +221,76 @@ class App {
           className: `${workout.type}-popup`,
         })
       )
-      .setPopupContent('workout')
+      .setPopupContent(
+        `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
+      )
       .openPopup();
   } //display marker
   // const { lat, lng } = this.#mapEvent.latlng;   //mapevent is also not present in the current scope
   //console.log([lat, lng]);
   //display marker
+
+  _renderworkout(workout) {
+    let html = `  
+                  <li class="workout workout--${workout.type}" data-id="${
+      workout.id
+    }">
+                          <h2 class="workout__title">${workout.description}</h2>
+                          <div class="workout__details">
+                            <span class="workout__icon">${
+                              workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'
+                            }</span>
+                            <span class="workout__value">${
+                              workout.distance
+                            }</span>
+                            <span class="workout__unit">km</span>
+                          </div>
+                          <div class="workout__details">
+                            <span class="workout__icon">⏱</span>
+                            <span class="workout__value">${
+                              workout.duration
+                            }</span>
+                            <span class="workout__unit">min</span>
+                          </div>
+
+                    `;
+    if (workout.type === 'running')
+      html += `     <div class="workout__details">
+                    <span class="workout__icon">⚡️</span>
+                    <span class="workout__value">${workout.pace.toFixed(
+                      1
+                    )}</span>
+                    <span class="workout__unit">min/km</span>
+                  </div>
+                  <div class="workout__details">
+                    <span class="workout__icon">🦶🏼</span>
+                    <span class="workout__value">${workout.cadence}</span>
+                    <span class="workout__unit">spm</span>
+                  </div>
+                </li>
+                  `;
+    if (workout.type === 'cycling')
+      html += `  <div class="workout__details">
+                          <span class="workout__icon">⚡️</span>
+                          <span class="workout__value">${workout.speed.toFixed(
+                            1
+                          )}</span>
+                          <span class="workout__unit">km/h</span>
+                    </div>
+                    <div class="workout__details">
+                          <span class="workout__icon">⛰</span>
+                          <span class="workout__value">${
+                            workout.elevationGain
+                          }</span>
+                          <span class="workout__unit">m</span>
+                </div>
+                <li/>`;
+    form.insertAdjacentHTML('afterend', html);
+  }
+  _moveToPopup(e) {
+    const workoutEL = e.target.closest('.workout');
+    console.log(workoutEL);
+  }
 }
 
 const app = new App();
