@@ -7,6 +7,7 @@
 class workout {
   date = new Date(); //defiend as fields
   id = (Date.now() + '').slice(-10); // for dummy unique id
+  clicks = 0
 
   constructor(coords, distance, duration) {
     // this will take in the data that is common in both the running and cycling classes
@@ -22,6 +23,10 @@ class workout {
     ];
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${months[this.date.getMonth()]} ${this.date.getDate()}`
 
+  }
+
+  click(){
+    this.clicks++
   }
 }
 
@@ -73,6 +78,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 
 class App {
   #map; //private properties that are presented on all the intances created through this class
+  #mapzoomLevel = 13;
   #mapEvent;
   #Workouts = [];
 
@@ -82,7 +88,7 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this)); // this._newWorkout is attached to an addEventListener fn it is called by addevent listener so here the this keyword will always point to the dom element that it is attached to and in this case its form element so we have to use bind method
 
     inputType.addEventListener('change', this._toggleElevationField); //here in the fn _toggleElevationField it doesn't matter what the this keyword will look like
-    containerWorkouts.addEventListener('click', this._moveToPopup);
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
 
   _getPosition() {
@@ -103,7 +109,7 @@ class App {
     const { longitude } = position.coords;
     console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
     const coords = [latitude, longitude];
-    this.#map = L.map('map').setView(coords, 13); //here we assigned that map with this value we will use it in the form submit fn not here
+    this.#map = L.map('map').setView(coords, this.#mapzoomLevel); //here we assigned that map with this value we will use it in the form submit fn not here
 
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       attribution:
@@ -290,6 +296,20 @@ class App {
   _moveToPopup(e) {
     const workoutEL = e.target.closest('.workout');
     console.log(workoutEL);
+    if (!workoutEL) return;
+
+    const workout = this.#Workouts.find(
+      work => work.id === workoutEL.dataset.id
+    );
+    this.#map.setView(workout.coords, this.#mapzoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+    //using the public interface
+    workout.click();
+    console.log(workout);
   }
 }
 
